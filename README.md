@@ -1,7 +1,7 @@
 # BLP-take-2-
 This is another BLP code with fake DGP. The contraction mapping uses SQUAREM method to speed up the contraction in the inner loop. 
 Here's the result:
-'''
+```
 ---Linear parameters from logit-IV regresion:---
              Coef.
 Constant -3.643708
@@ -31,4 +31,4 @@ rc_char1  1.437001  0.153163
 rc_char2  0.742560  0.200833
 --- This estimation used 200 Halton draws. ---
 --- 105.18553447723389 seconds ---
-'''
+```
