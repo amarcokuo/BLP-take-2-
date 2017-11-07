@@ -29,6 +29,7 @@ char1     6.000150  0.046532
 char2     2.076059  0.014184
 rc_char1  1.437001  0.153163
 rc_char2  0.742560  0.200833
---- This estimation used 200 Halton draws. ---
---- 105.18553447723389 seconds ---
+--- With 200 Halton draws. ---
+--- This estimation uses SQUAREM method for contraction mapping. ---
+--- 87.18783640861511 seconds ---
 ```
