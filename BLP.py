@@ -4,7 +4,6 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.stats import norm
 import time
-from numba import jit
 import openturns as ot
 
 class BLP:
@@ -20,7 +19,7 @@ class BLP:
         self.x2 = df.as_matrix(['char1', 'char2'])
 
         # number of random coefficients
-        self.nrc = 2
+        self.nrc = self.x2.shape[1]
 
         # number of simulated "indviduals" per market
         self.ns = 200
@@ -36,11 +35,11 @@ class BLP:
         self.cdid = np.kron(np.array([i for i in range(self.nmkt)], ndmin=2).T, np.ones((100, 1)))
         self.cdid = self.cdid.reshape(self.cdid.shape[0]).astype('int')
 
-        ## this vector provides for each index the of the last observation
-        ## in the data used here all brands appear in all markets. if this
-        ## is not the case the two vectors, cdid and cdindex, have to be
-        ## created in a different fashion but the rest of the program works fine.
-        ## cdindex = [nbrn:nbrn:nbrn*nmkt]';
+        # this vector provides for each index the of the last observation
+        # in the data used here all brands appear in all markets. if this
+        # is not the case the two vectors, cdid and cdindex, have to be
+        # created in a different fashion but the rest of the program works fine.
+        # cdindex = [nbrn:nbrn:nbrn*nmkt]';
         self.cdindex = np.array([i for i in range((100 - 1), 100 * self.nmkt, 100)])
 
         # the market share of product j in market t
@@ -82,7 +81,6 @@ class BLP:
         # convert halton sequence into normal dist. draws
         self.vi = norm.ppf(self.v)
 
-
         self.gmmvalold = 0
         self.gmmdiff = 1
 
@@ -96,8 +94,9 @@ class BLP:
     def mktsh(self, old_delta_exp):
         # compute the market share for each product
         temp = self.ind_sh(old_delta_exp).T
-        f = sum(temp) / float(self.ns)
+        f = temp.sum(axis=0) / float(self.ns)
         return f.T
+
 
     def ind_sh(self, old_delta_exp):
         try:
@@ -110,7 +109,6 @@ class BLP:
 
         eg = np.multiply(self.expmu, np.kron(np.ones((1, self.ns)), old_delta_exp))
         # for every product j at time t, exp(mu) * exp(delta) = exp(mu_ijt + delta_jt)
-
 
         gap = self.num_prod.flatten()
         # gap helps track the number of products in each market.
@@ -134,10 +132,7 @@ class BLP:
         return np.multiply(eg, denom)
 
 
-
-    @jit
     def meanval(self, theta2):
-
         n, k = self.x2.shape
         # self.expmu = np.exp(self.mufunc(theta2))
         self.theta2 = theta2
@@ -200,7 +195,7 @@ class BLP:
         self.old_delta = np.log(self.old_delta_exp)
         return np.log(self.new_delta_exp)
 
-    @jit
+
     def gmmobj(self, theta2):
         # compute GMM objective function
         self.delta = self.meanval(theta2)
@@ -247,6 +242,7 @@ class BLP:
         num_prod = self.num_prod.flatten()
         f = np.zeros((n, K))
         share_theta2 = np.zeros((n, K))
+
         # computing JT*L matrix, which is (partial shares)/(partial theta2)
         for i in range(self.ns):
             v_s = np.zeros((n, K))
@@ -263,7 +259,6 @@ class BLP:
         share_theta2 = share_theta2 / self.ns
 
         # End of computing JT*L matrix, which is (partial shares)/(partial theta2)
-
 
         # computing JT*J matrix, which is (partial shares)/(partial delta), and D_delta Jacobian
 
@@ -308,7 +303,7 @@ class BLP:
 
         rex = res.x
         D_names = ['Coef.', 'S.E.']
-        V_names = ['constant', 'price', 'char1', 'char2',  'rc_char1', 'rc_char2']
+        V_names = ['constant', 'price', 'char1', 'char2', 'rc_char1', 'rc_char2']
 
         df3 = pd.DataFrame(np.hstack((self.theta1.flatten(), rex)), index=V_names)
         other_se = self.cal_se()
@@ -331,8 +326,6 @@ if __name__ == '__main__':
         print('{:>10}  {:10.6f}'.format(Nfeval, blp.gmmobj(Xi)))
         Nfeval += 1
 
-
-
     blp = BLP()
     init_theta = blp.init_theta2
     print("---Linear parameters from logit-IV regresion:---")
@@ -344,6 +337,8 @@ if __name__ == '__main__':
     res = minimize(blp.gmmobj, init_theta, method='BFGS', callback=callbackF, options={'maxiter': 20, 'disp': True})
     print(blp.result(res.x))
     # Nelder-Mead
-    print("--- This estimation used %s Halton draws. ---" % (blp.ns))
+    print("--- With %s Halton draws. ---" % blp.ns)
 
+    print("--- This estimation uses SQUAREM method for contraction mapping. ---")
+    
     print("--- %s seconds ---" % (time.time() - start_time))
